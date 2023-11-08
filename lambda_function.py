@@ -34,12 +34,13 @@ def lambda_handler(event, context):
     '''
     
     # print("body: " + json.dumps(event['body']))
-    # ITS GONNA WORK THIOS TIME!!!1
 
     params = json.loads(event['body'])
+    sentiment_data = None
 
     if "Comment" in params:
-        print(comprehend.detect_sentiment(Text=params['Comment'], LanguageCode='en'))
+        sentiment_data = comprehend.detect_sentiment(Text=params['Comment'], LanguageCode='en')
+        print(sentiment_data)
 
     operations = {
         'DELETE': lambda dynamo, x: dynamo.delete_item(**x),
@@ -58,6 +59,8 @@ def lambda_handler(event, context):
                 'ExpressionAttributeNames':{
                     '#F': 'FirstName',
                     '#L': 'LastName',
+                    '#C': 'Comment',
+                    '#S': 'Sentiment'
                 },
                 'ExpressionAttributeValues':{
                     ':f': {
@@ -66,6 +69,12 @@ def lambda_handler(event, context):
                     ':l': {
                         'S': params['LastName'],
                     },
+                    ':c': {
+                        'S': params['Comment'] if 'Comment' in params else '',
+                    },
+                    ':s': {
+                        'S': sentiment_data['Comprehend']['Sentiment'] if sentiment_data is not None else None,
+                    }
                 },
                 'TableName':'demo-day-table',
                 'Key':{
@@ -73,7 +82,7 @@ def lambda_handler(event, context):
                         'S': params['Username']
                     }
                 },
-                'UpdateExpression':'SET #F = :f, #L = :l'
+                'UpdateExpression':'SET #F = :f, #L = :l, #C = :c, #S = :s'
             })
             print(dump)
             payload = json.loads(dump)
