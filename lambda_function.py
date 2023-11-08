@@ -34,7 +34,7 @@ def lambda_handler(event, context):
     '''
     
     # print("body: " + json.dumps(event['body']))
-    # did it work 0.0
+    # ITS GONNA WORK THIOS TIME!!!1
 
     params = json.loads(event['body'])
 
