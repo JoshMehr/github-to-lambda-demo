@@ -73,7 +73,7 @@ def lambda_handler(event, context):
                         'S': params['Comment'] if 'Comment' in params else '',
                     },
                     ':s': {
-                        'S': sentiment_data['Sentiment'] if sentiment_data is not None else None,
+                        'S': sentiment_data['Sentiment'] if sentiment_data is not None else '',
                     }
                 },
                 'TableName':'demo-day-table',
