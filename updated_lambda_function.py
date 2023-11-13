@@ -3,6 +3,7 @@ import json
 
 print('Loading function')
 dynamo = boto3.client('dynamodb')
+comprehend = boto3.client(service_name='comprehend', region_name='us-east-1')
 
 
 def set_default(obj):
@@ -31,9 +32,15 @@ def lambda_handler(event, context):
     PUT, or DELETE request respectively, passing in the payload to the
     DynamoDB API as a JSON body.
     '''
-    #print("Received event: " + json.dumps(event, indent=2))
-    print("body: " + json.dumps(event['body']))
+    
+    # print("body: " + json.dumps(event['body']))
+
     params = json.loads(event['body'])
+    sentiment_data = None
+
+    if "Comment" in params:
+        sentiment_data = comprehend.detect_sentiment(Text=params['Comment'], LanguageCode='en')
+        print(sentiment_data)
 
     operations = {
         'DELETE': lambda dynamo, x: dynamo.delete_item(**x),
@@ -52,6 +59,8 @@ def lambda_handler(event, context):
                 'ExpressionAttributeNames':{
                     '#F': 'FirstName',
                     '#L': 'LastName',
+                    '#C': 'Comment',
+                    '#S': 'Sentiment'
                 },
                 'ExpressionAttributeValues':{
                     ':f': {
@@ -60,6 +69,12 @@ def lambda_handler(event, context):
                     ':l': {
                         'S': params['LastName'],
                     },
+                    ':c': {
+                        'S': params['Comment'] if 'Comment' in params else '',
+                    },
+                    ':s': {
+                        'S': sentiment_data['Sentiment'] if sentiment_data is not None else '',
+                    }
                 },
                 'TableName':'demo-day-table',
                 'Key':{
@@ -67,7 +82,7 @@ def lambda_handler(event, context):
                         'S': params['Username']
                     }
                 },
-                'UpdateExpression':'SET #F = :f, #L = :l'
+                'UpdateExpression':'SET #F = :f, #L = :l, #C = :c, #S = :s'
             })
             print(dump)
             payload = json.loads(dump)
@@ -76,4 +91,3 @@ def lambda_handler(event, context):
         return respond(None, operations[operation](dynamo, payload))
     else:
         return respond(ValueError('Unsupported method "{}"'.format(operation)))
-    
